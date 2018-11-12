@@ -1,0 +1,17 @@
+canto_connector.image_dialog:
+  path: '/canto_connector/dialog/image/{filter_format}'
+  defaults:
+    _form: '\Drupal\canto_connector\Form\CantoConnectorDialog'
+    _title: 'Canto Connector'
+  options:
+    _theme: ajax_base_page
+  requirements:
+    _entity_access: 'filter_format.use'
+    
+canto_connector.admin_settings_form:
+  path: '/admin/config/search/canto_connector'
+  defaults:
+    _form: '\Drupal\canto_connector\Form\CantoConnectorAdminSettingsForm'
+    _title: 'Canto Connector Settings'
+  requirements:
+    _permission: 'administer site configuration'
