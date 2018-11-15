@@ -83,12 +83,8 @@ class CantoConnectorDialog extends FormBase {
   }
 
 
-  public function submitForm(array &$form, FormStateInterface $form_state) {
+ public function submitForm(array &$form, FormStateInterface $form_state) {
     $response = new AjaxResponse();
-    
-    $publichPath= \Drupal::service('file_system')->realpath(file_default_scheme() . "://");
-    $startIndex = stripos($publichPath, 'htdocs')+6;
-    $path=  substr($publichPath,$startIndex);
     
     $insertHTML="";
     $title = $form_state->getValue('cantofid');
@@ -98,18 +94,20 @@ class CantoConnectorDialog extends FormBase {
     { 
         if(strlen($item) > 1)
         {
-        \Drupal::logger('image_popup')->notice('0-'.$item); 
+        \Drupal::logger('canto_connector')->notice('original_image-'.$item); 
         $local = system_retrieve_file($item, NULL, TRUE, FILE_EXISTS_REPLACE);
         $filename=$local->getFilename();
-        
-        $fullPath =str_replace(DIRECTORY_SEPARATOR, '/', join(DIRECTORY_SEPARATOR, array($path, $filename)));  
-        
-        
-        $insertHTML .= "<img alt=".$filename." src=". $fullPath.">";
+        $efid=$local->id();
+        $drupal_file_uri = File::load($efid)->getFileUri();
 
-        \Drupal::logger('canto_connector')->notice("-".$insertHTML);  
+        $image_path = file_url_transform_relative(file_create_url($drupal_file_uri));
+        \Drupal::logger('canto_connector')->notice("filename-". $filename); 
+        \Drupal::logger('canto_connector')->notice("image_path-". $image_path); 
+        
+        $insertHTML .= "<img alt=".$filename." src=". $image_path.">";
         }
     } 
+    
     $response->addCommand(new EditorDialogSave($insertHTML));
     $response->addCommand(new CloseModalDialogCommand());
     return $response;
@@ -117,3 +115,4 @@ class CantoConnectorDialog extends FormBase {
   }
 
 }
+
