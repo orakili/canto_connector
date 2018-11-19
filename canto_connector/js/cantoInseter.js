@@ -22,7 +22,7 @@
   $(function () {
 	  console.log(drupalSettings.canto_connector.env);
 	  $('#cantoUC').cantoUC({
-	        env: drupalSettings.canto_connector.env
+		  env: drupalSettings.canto_connector.env?drupalSettings.canto_connector.env:'flightbycanto.com'
 	    },  cantoFilePopupCallback);
   })
 })(jQuery,Drupal,drupalSettings);
