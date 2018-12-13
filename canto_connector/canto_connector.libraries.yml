@@ -16,3 +16,4 @@ canto_connector.uc:
     js/cantoUniversalConnector.js: { }
   dependencies:
     - core/jquery
+    - core/drupal

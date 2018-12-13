@@ -11,20 +11,24 @@ use Drupal\editor\Ajax\EditorDialogSave;
 use Drupal\Core\Ajax\CloseModalDialogCommand;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Drupal\Core\Entity\EntityStorageInterface;
-
+use Drupal\canto_connector\CantoConnectorRepository;
+use Drupal\canto_connector\OAuthConnector;
 
 class CantoConnectorDialog extends FormBase {
 
 
   protected $fileStorage;
-
-  public function __construct(EntityStorageInterface $file_storage) {
+  protected $repository;
+  public function __construct(EntityStorageInterface $file_storage,CantoConnectorRepository $repository) {
     $this->fileStorage = $file_storage;
+    $this->repository = $repository;
   }
 
   public static function create(ContainerInterface $container) {
     return new static(
-      $container->get('entity.manager')->getStorage('file')
+      $container->get('entity.manager')->getStorage('file'),
+      $container->get('canto_connector.repository') ,
+      $container->get('string_translation'));
     );
   }
 
@@ -48,7 +52,16 @@ class CantoConnectorDialog extends FormBase {
     $form['#attached']['library'][] = 'canto_connector/canto_connector.inserter';
     $form['#attached']['library'][] = 'canto_connector/canto_connector.uc';
     $form['#attached']['drupalSettings']['canto_connector']['env'] = $config->get('env');
-
+    $entry= $this->CheckAccessToken();
+    if(count($entry) >0)
+    {
+        \Drupal::logger('canto_connector')->notice("check access -". $entry[0]['accessToken']);
+        $form['#attached']['drupalSettings']['canto_connector']['accessToken'] =$entry[0]['accessToken'];
+        $form['#attached']['drupalSettings']['canto_connector']['tenants'] =$entry[0]['subDomain'];
+        $form['#attached']['drupalSettings']['canto_connector']['tokenType'] =$entry[0]['tokenType'];
+        
+    }  
+    
     $form['files'] = [
         '#type' => 'item',
         '#markup' => '<div id="cantoPickbox" >
@@ -113,6 +126,39 @@ class CantoConnectorDialog extends FormBase {
     $response->addCommand(new CloseModalDialogCommand());
     return $response;
    
+  }
+  
+  public function CheckAccessToken()
+  {
+      $user =  \Drupal\user\Entity\User::load(\Drupal::currentUser()->id());
+      $userId= $user->get('uid')->value;
+      $envSettings=$this->config('canto_connector.settings')->get('env');
+      $env=($envSettings === NULL)?"canto.com":$envSettings;
+      $entries=[];
+
+      $entry = [
+          'uid' => $userId,
+          'env' => $env,
+      ];
+      
+      $entries = $this->repository->getAccessToken($entry);
+      if(count($entries) >0 )
+      {
+          
+          $subDomain = $entries[0]['subDomain'];
+          
+          $accessToken = $entries[0]['accessToken'];
+          
+          $connector = new OAuthConnector();
+          $isValid = $connector->checkAccessTokenValid($subDomain, $accessToken);
+          \Drupal::logger('canto_connector')->notice("check access token valid");
+          if (! $isValid) {
+              $this->repository->delete($entry);
+              \Drupal::logger('canto_connector')->notice("delete invalid token");
+              $entries=[];
+          }
+      }
+      return $entries;
   }
 
 }

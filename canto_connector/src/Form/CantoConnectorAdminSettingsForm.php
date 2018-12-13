@@ -25,13 +25,13 @@ class CantoConnectorAdminSettingsForm extends ConfigFormBase {
             '#type' => 'select',
             '#title' => $this->t('Canto Environment selection'),
             '#options' => [
-                'flightbycanto.com' => $this->t('dev'),
-                'staging.cantoflight.com' => $this->t('staging'),
                 'canto.com' => $this->t('production'),
                 'canto.global' => $this->t('europe'),
+                'staging.cantoflight.com' => $this->t('staging'),
+                'flightbycanto.com' => $this->t('dev'),
                 
             ],
-            '#default_value' => $config->get('env'),
+            '#default_value' => $config->get('env')??'canto.com',
             '#attributes' => [
                 'data-editor-canto_connector-canto' => 'env',
             ],

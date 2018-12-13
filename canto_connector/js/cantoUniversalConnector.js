@@ -2,7 +2,7 @@
     Canto Universal Connector 1.0.0
     Dependencies on jQuery.
 */
-(function ($, document, window) {
+(function ($, document, window, Drupal) {
     var cantoUC,
     pluginName = "cantoUC",
     redirectUri = "",
@@ -28,6 +28,14 @@
                 var receiver = document.getElementById('cantoUCFrame').contentWindow;
                 receiver.postMessage(tokenInfo, '*');
             } else if(data && data.type == "cantoLogout"){
+            	 $.ajax({
+                     url: Drupal.url('canto_connector/delete_access_token'),
+                     type: 'POST',
+                     data: { 'accessToken': tokenInfo.accessToken, 'env': env
+                     	
+                     },
+                     dataType: 'json',
+                   });
                 //clear token and close the frame.
                 tokenInfo = {};
                 $(".canto-uc-iframe-close-btn").trigger("click");
@@ -38,6 +46,12 @@
                 callback(currentCantoTagID, data.assetList);
 
             } else {
+            	$.ajax({
+                    url: Drupal.url('canto_connector/save_access_token'),
+                    type: 'POST',
+                    data: { 'accessToken': data.accessToken, 'tokenType': data.tokenType, 'subdomain':data.refreshToken},
+                    dataType: 'json',
+                  });
                 tokenInfo = data;
                 var cantoContentPage = "https://s3-us-west-2.amazonaws.com/static.dmc/universal/cantoContent.html";
                 //var cantoContentPage = "./cantoAssets/cantoContent.html";
@@ -55,6 +69,11 @@
         };
         env = options.env;
         appId = envObj[env];
+        if(options.tenants && options.tenants.length>1 && options.accessToken && options.accessToken.length>1)
+        {
+        console.log("get token info from Drupal DB");
+        tokenInfo={accessToken:options.accessToken,tokenType:options.tokenType,refreshToken:options.tenants};
+        }
     }
     function loadCantoUCResource() {
         // dynamicLoadJs("./cantoAssets/main.js");
@@ -140,4 +159,4 @@
     }
 
 
-}(jQuery, document, window));
+}(jQuery, document, window, Drupal));
