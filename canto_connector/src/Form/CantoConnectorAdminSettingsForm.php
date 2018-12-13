@@ -25,8 +25,8 @@ class CantoConnectorAdminSettingsForm extends ConfigFormBase {
             '#type' => 'select',
             '#title' => $this->t('Canto Environment selection'),
             '#options' => [
-                'canto.com' => $this->t('production'),
-                'canto.global' => $this->t('europe'),
+                'canto.com' => $this->t('canto.com'),
+                'canto.global' => $this->t('canto.global'),
                 'staging.cantoflight.com' => $this->t('staging'),
                 'flightbycanto.com' => $this->t('dev'),
                 
