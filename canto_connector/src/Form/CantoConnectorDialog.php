@@ -29,7 +29,6 @@ class CantoConnectorDialog extends FormBase {
       $container->get('entity.manager')->getStorage('file'),
       $container->get('canto_connector.repository') ,
       $container->get('string_translation'));
-    );
   }
 
   public function getFormId() {
