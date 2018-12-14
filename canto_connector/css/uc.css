@@ -988,7 +988,7 @@ body { font-family: sans-serif, Helvetica, Arial; font-size: 14px; line-height: 
 
 .image-preview-modal .detail-box .insert-action-section .btn-group { float: right; margin-right: 10px; }
 
-.canto-pick-box { width: 500px; background-color: #FF9800; padding: 10px; }
+.canto-pick-box { width: 300px; }
 
 .canto-pick-box .header { position: relative; }
 
@@ -996,7 +996,7 @@ body { font-family: sans-serif, Helvetica, Arial; font-size: 14px; line-height: 
 
 .canto-pick-box .header .close-btn { position: absolute; right: 0; top: 0; font-size: 23px; color: #fff; }
 
-.canto-pick-box .img-box { background-color: #fff; margin-top: 10px; padding: 10px; }
+.canto-pick-box .img-box { height: 30px; padding: 10px; cursor: pointer; }
 
 .canto-pick-box .btn-section { text-align: center; }
 

@@ -63,7 +63,7 @@ class CantoConnectorDialog extends FormBase {
     
     $form['files'] = [
         '#type' => 'item',
-        '#markup' => '<div id="cantoPickbox" >
+        '#markup' => '<div id="cantoPickbox" class="canto-pick-box">
         <div class="img-box" id="cantoimage">
            + Insert Files from Canto
         </div>
