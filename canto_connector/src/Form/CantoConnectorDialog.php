@@ -81,7 +81,7 @@ class CantoConnectorDialog extends FormBase {
 
     $form['actions']['save_modal'] = array(
       '#type' => 'submit',
-      '#value' => $this->t('confirm'),
+      '#value' => $this->t('Close'),
       '#submit' => array(),
         '#class' => 'my_class',
       '#ajax' => array(
