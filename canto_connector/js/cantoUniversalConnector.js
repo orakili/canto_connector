@@ -28,6 +28,7 @@
                 var receiver = document.getElementById('cantoUCFrame').contentWindow;
                 receiver.postMessage(tokenInfo, '*');
             } else if(data && data.type == "cantoLogout"){
+            	if(tokenInfo.accessToken){
             	 $.ajax({
                      url: Drupal.url('canto_connector/delete_access_token'),
                      type: 'POST',
@@ -36,6 +37,7 @@
                      },
                      dataType: 'json',
                    });
+            	}
                 //clear token and close the frame.
                 tokenInfo = {};
                 $(".canto-uc-iframe-close-btn").trigger("click");
