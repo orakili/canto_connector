@@ -67,6 +67,8 @@ class CantoConnectorDialog extends FormBase {
         <div class="img-box" id="cantoimage">
            + Insert Files from Canto
         </div>
+		 <div class="info">The total selected files size is limited to 128 MB. 
+        </div>
     </div>',
     ];
 
