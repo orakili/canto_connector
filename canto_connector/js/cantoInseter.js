@@ -13,7 +13,7 @@
 	    var imageHtml = "";
 	    var size=0;
 	    for(var i = 0; i < assetArray.length; i++){
-	        imageHtml +=  assetArray[i].originalUrl + ';';
+	        imageHtml +=  assetArray[i].directUri + ';';
 	        size+=assetArray[i].size;
 	    }
 	    if(size>134217728)
