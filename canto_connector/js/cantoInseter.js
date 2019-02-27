@@ -13,7 +13,7 @@
 	    var imageHtml = "";
 	    var size=0;
 	    for(var i = 0; i < assetArray.length; i++){
-	        imageHtml +=  assetArray[i].directUri + ';';
+	    	 imageHtml +=  assetArray[i].directUri + ','+  assetArray[i].displayName +';';
 	        size+=assetArray[i].size;
 	    }
 	    if(size>134217728)
@@ -30,7 +30,7 @@
 			   document.getElementsByClassName("error")[0].className="info";
 			   
 			   }
-	    document.getElementsByName("cantofid")[0].value=imageHtml;
+	    document.getElementsByName("cantofid")[0].value = imageHtml;
 	    document.getElementsByClassName('button js-form-submit form-submit ui-button ui-corner-all ui-widget')[0].click();
 	    }
 	  }

@@ -102,24 +102,34 @@ class CantoConnectorDialog extends FormBase {
     $response = new AjaxResponse();
     
     $insertHTML="";
-    $title = $form_state->getValue('cantofid');
+    $cantoFiles = $form_state->getValue('cantofid');
    
-    $assets = explode(";", $title);
+    $assets = explode(";", $cantoFiles);
+ 
     foreach ( $assets as $item)
     { 
         if(strlen($item) > 1)
         {
-        \Drupal::logger('canto_connector')->notice('original_image-'.$item); 
-        $local = system_retrieve_file($item, NULL, TRUE, FILE_EXISTS_REPLACE);
-        $filename=$local->getFilename();
-        $efid=$local->id();
-        $drupal_file_uri = File::load($efid)->getFileUri();
-
-        $image_path = file_url_transform_relative(file_create_url($drupal_file_uri));
-        \Drupal::logger('canto_connector')->notice("filename-". $filename); 
-        \Drupal::logger('canto_connector')->notice("image_path-". $image_path); 
-        
-        $insertHTML .= "<img alt=".$filename." src=". $image_path.">";
+            
+            $array=explode(",", $item);
+            $url =  $array[0];
+            $fileName=$array[1];
+            \Drupal::logger('canto_connector')->notice('original_image-'.$url);
+            
+            $local = system_retrieve_file($url, 'public://'.$fileName, TRUE, FILE_EXISTS_REPLACE);
+            
+            $efid=$local->id();
+            $file=File::load($efid);
+            $drupal_file_uri = $file->getFileUri();
+            
+            $image_path = file_url_transform_relative(file_create_url($drupal_file_uri));
+            \Drupal::logger('canto_connector')->notice("image_path-". $image_path);
+            
+            $insertHTML .= "<img alt=".$fileName." src=". $image_path.">";
+            
+            
+            // $file_usage = \Drupal::service('file.usage');
+            //  $file_usage->add($file, 'editor', 'media', $entity_id);
         }
     } 
     
