@@ -2,17 +2,26 @@
 
 namespace Drupal\canto_connector\Form;
 
+use Drupal\Core\Field\TypedData\FieldItemDataDefinition;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Entity\EntityStorageInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Entity\Entity\EntityFormDisplay;
+use Drupal\Core\Ajax\AjaxResponse;
+use Drupal\Core\Ajax\CloseModalDialogCommand;
 use Drupal\file\Entity\File;
 use Drupal\filter\Entity\FilterFormat;
-use Drupal\Core\Ajax\AjaxResponse;
+use Drupal\file\FileInterface;
+use Drupal\file\Plugin\Field\FieldType\FileFieldItemList;
+use Drupal\file\Plugin\Field\FieldType\FileItem;
 use Drupal\editor\Ajax\EditorDialogSave;
-use Drupal\Core\Ajax\CloseModalDialogCommand;
 use Symfony\Component\DependencyInjection\ContainerInterface;
-use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\canto_connector\CantoConnectorRepository;
 use Drupal\canto_connector\OAuthConnector;
+use Drupal\media\MediaInterface;
+use Drupal\media\MediaTypeInterface;
+
 
 class CantoConnectorDialog extends FormBase {
 
@@ -21,6 +30,7 @@ class CantoConnectorDialog extends FormBase {
   protected $repository;
   public function __construct(EntityStorageInterface $file_storage,CantoConnectorRepository $repository) {
     $this->fileStorage = $file_storage;
+
     $this->repository = $repository;
   }
 
@@ -99,43 +109,45 @@ class CantoConnectorDialog extends FormBase {
 
 
  public function submitForm(array &$form, FormStateInterface $form_state) {
-    $response = new AjaxResponse();
-    
-    $insertHTML="";
-    $cantoFiles = $form_state->getValue('cantofid');
-   
-    $assets = explode(";", $cantoFiles);
- 
-    foreach ( $assets as $item)
-    { 
-        if(strlen($item) > 1)
-        {
-            
-            $array=explode(",", $item);
-            $url =  $array[0];
-            $fileName=$array[1];
-            \Drupal::logger('canto_connector')->notice('original_image-'.$url);
-            
-            $local = system_retrieve_file($url, 'public://'.$fileName, TRUE, FILE_EXISTS_REPLACE);
-            
-            $efid=$local->id();
-            $file=File::load($efid);
-            $drupal_file_uri = $file->getFileUri();
-            
-            $image_path = file_url_transform_relative(file_create_url($drupal_file_uri));
-            \Drupal::logger('canto_connector')->notice("image_path-". $image_path);
-            
-            $insertHTML .= "<img alt=".$fileName." src=". $image_path.">";
-            
-            
-            // $file_usage = \Drupal::service('file.usage');
-            //  $file_usage->add($file, 'editor', 'media', $entity_id);
-        }
-    } 
-    
-    $response->addCommand(new EditorDialogSave($insertHTML));
-    $response->addCommand(new CloseModalDialogCommand());
-    return $response;
+     $response = new AjaxResponse();
+     
+     $cantoFiles = $form_state->getValue('cantofid');
+     $insertHTML= '' ;
+     
+     if(strlen($cantoFiles)>1)
+     {
+         $assets = explode(";", $cantoFiles);
+         
+         foreach ( $assets as $item)
+         {
+             if(strlen($item) > 1)
+             {
+                 
+                 $array=explode(",", $item);
+                 $url =  $array[0];
+                 $fileName=$array[1];
+                 \Drupal::logger('canto_connector')->notice('original_image-'.$url);
+                 
+                 $local = system_retrieve_file($url, 'public://'.$fileName, TRUE, FILE_EXISTS_REPLACE);
+                 
+                 $efid=$local->id();
+                 $file=File::load($efid);
+                 $drupal_file_uri = $file->getFileUri();
+                 
+                 $image_path = file_url_transform_relative(file_create_url($drupal_file_uri));
+                 \Drupal::logger('canto_connector')->notice("image_path-". $image_path);
+                 
+                 $insertHTML .= "<img alt=".$fileName." src=". $image_path.">";
+                 $this->createMedia($efid);
+                 $form_state->setValue('cantofid','');
+                 $form_state->setValue('insertHTML',$insertHTML);
+                 
+             }
+         }
+     }
+     $response->addCommand(new EditorDialogSave($form_state->getValue('insertHTML')));
+     $response->addCommand(new CloseModalDialogCommand());
+     return $response;
    
   }
   
@@ -170,6 +182,94 @@ class CantoConnectorDialog extends FormBase {
           }
       }
       return $entries;
+  }
+  
+  public function createMedia(int $fid) {
+      
+      $file = \Drupal::entityTypeManager()->getStorage('file')->load($fid);
+      
+      /** @var \Drupal\file\FileInterface $file */
+      $types = $this->filterTypesThatAcceptFile($file, $this->getTypes());
+      if (!empty($types)) {
+          if (count($types) === 1) {
+              $this->createMediaEntity($file, reset($types))->save();
+          }
+      }
+      
+  }
+  
+  protected function createMediaEntity(FileInterface $file, MediaTypeInterface $type) {
+      $source_field = $type->getSource()->getSourceFieldDefinition($type)->getName();
+      $media = \Drupal::entityTypeManager()->getStorage('media')->create([
+          'bundle' => $type->id(),
+          'name' => $file->getFilename(),
+          $source_field =>$file->id()
+      ]);
+      
+      return $media;
+  }
+  
+  
+  protected function getUploadLocationForType(MediaTypeInterface $type) {
+      return $this->getFileItemForType($type)->getUploadLocation();
+  }
+  protected function filterTypesThatAcceptFile(FileInterface $file, array $types) {
+      $types = $this->filterTypesWithFileSource($types);
+      return array_filter($types, function (MediaTypeInterface $type) use ($file) {
+          $validators = $this->getUploadValidatorsForType($type);
+          $errors = file_validate($file, $validators);
+          return empty($errors);
+      });
+  }
+  
+  
+  protected function getUploadValidatorsForType(MediaTypeInterface $type) {
+      return $this->getFileItemForType($type)->getUploadValidators();
+  }
+  
+  protected function getFileItemForType(MediaTypeInterface $type) {
+      $source = $type->getSource();
+      $source_data_definition = FieldItemDataDefinition::create($source->getSourceFieldDefinition($type));
+      return new FileItem($source_data_definition);
+  }
+  
+  protected function filterTypesWithFileSource(array $types) {
+      return array_filter($types, function (MediaTypeInterface $type) {
+          return is_a($type->getSource()->getSourceFieldDefinition($type)->getClass(), FileFieldItemList::class, TRUE);
+      });
+  }
+  
+  protected function filterTypesWithCreateAccess(array $types) {
+      $access_handler =  \Drupal::entityTypeManager()->getAccessControlHandler('media');
+      return array_filter($types, function (MediaTypeInterface $type) use ($access_handler) {
+          return $access_handler->createAccess($type->id());
+      });
+  }
+  
+  protected function getTypes(array $allowed_types = NULL) {
+      if (!isset($this->types)) {
+          $media_type_storage = \Drupal::entityTypeManager()->getStorage('media_type');
+          
+          if (!$allowed_types) {
+              $allowed_types = $this->media_library_get_allowed_types() ?: NULL;
+          }
+          $types = $media_type_storage->loadMultiple($allowed_types);
+          
+          $types = $this->filterTypesWithFileSource($types);
+          
+          $types = $this->filterTypesWithCreateAccess($types);
+          $this->types = $types;
+      }
+      return $this->types;
+  }
+  
+  protected function media_library_get_allowed_types() {
+      $t = \Drupal::request()->query->get('media_library_allowed_types');
+      \Drupal::logger('canto_connector')->notice('$media_library_get_allowed_types-'.json_encode($t));
+      if ($types && is_array($t)) {
+          return array_filter($t, 'is_string');
+      }
+      return [];
   }
 
 }
