@@ -185,14 +185,16 @@ class CantoConnectorDialog extends FormBase {
   }
   
   public function createMedia(int $fid) {
-      
-      $file = \Drupal::entityTypeManager()->getStorage('file')->load($fid);
-      
-      /** @var \Drupal\file\FileInterface $file */
-      $types = $this->filterTypesThatAcceptFile($file, $this->getTypes());
-      if (!empty($types)) {
-          if (count($types) === 1) {
-              $this->createMediaEntity($file, reset($types))->save();
+      $info = system_get_info('module', 'media');
+      if ($info) {
+          $file = \Drupal::entityTypeManager()->getStorage('file')->load($fid);
+          
+          /** @var \Drupal\file\FileInterface $file */
+          $types = $this->filterTypesThatAcceptFile($file, $this->getTypes());
+          if (!empty($types)) {
+              if (count($types) === 1) {
+                  $this->createMediaEntity($file, reset($types))->save();
+              }
           }
       }
       
