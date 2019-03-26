@@ -10,7 +10,8 @@
     env = "flightbycanto.com",  //flightbycanto.com/staging.cantoflight.com/canto.com/canto.global
     appId = "f5ecd6095ebb469691b7398e4945eb44",
     callback,
-    currentCantoTagID;
+    currentCantoTagID,
+    formatDistrict;
 
     cantoUC = $.fn[pluginName] = $[pluginName] = function (options, callback) {
         /*! options.env:   flightbycanto.com/staging.cantoflight.com/canto.com/canto.global
@@ -26,6 +27,7 @@
             var data = event.data;
             if(data && data.type == "getTokenInfo"){
                 var receiver = document.getElementById('cantoUCFrame').contentWindow;
+                tokenInfo.formatDistrict = formatDistrict;
                 receiver.postMessage(tokenInfo, '*');
             } else if(data && data.type == "cantoLogout"){
             	if(tokenInfo.accessToken){
@@ -76,6 +78,7 @@
         console.log("get token info from Drupal DB");
         tokenInfo={accessToken:options.accessToken,tokenType:options.tokenType,refreshToken:options.tenants};
         }
+        formatDistrict = options.extensions;
     }
     function loadCantoUCResource() {
         // dynamicLoadJs("./cantoAssets/main.js");

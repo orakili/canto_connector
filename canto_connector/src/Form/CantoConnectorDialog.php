@@ -69,6 +69,10 @@ class CantoConnectorDialog extends FormBase {
         $form['#attached']['drupalSettings']['canto_connector']['tenants'] =$entry[0]['subDomain'];
         $form['#attached']['drupalSettings']['canto_connector']['tokenType'] =$entry[0]['tokenType'];
         
+        $image_factory = \Drupal::service('image.factory');
+        $supported_extensions = $image_factory ->getSupportedExtensions();
+        $form['#attached']['drupalSettings']['canto_connector']['allowExtensions'] = implode(';', $supported_extensions);
+        
     }  
     
     $form['files'] = [
