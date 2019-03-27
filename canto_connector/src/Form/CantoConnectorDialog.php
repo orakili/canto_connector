@@ -196,9 +196,9 @@ class CantoConnectorDialog extends FormBase {
           /** @var \Drupal\file\FileInterface $file */
           $types = $this->filterTypesThatAcceptFile($file, $this->getTypes());
           if (!empty($types)) {
-              if (count($types) === 1) {
+              //if (count($types) === 1) {
                   $this->createMediaEntity($file, reset($types))->save();
-              }
+              //}
           }
       }
       
