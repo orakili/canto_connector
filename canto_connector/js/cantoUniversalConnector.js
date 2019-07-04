@@ -50,6 +50,9 @@
                 callback(currentCantoTagID, data.assetList);
 
             } else {
+                if(!data.accessToken){
+                    return;
+                }
             	$.ajax({
                     url: Drupal.url('canto_connector/save_access_token'),
                     type: 'POST',

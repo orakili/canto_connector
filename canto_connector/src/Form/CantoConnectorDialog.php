@@ -71,6 +71,7 @@ class CantoConnectorDialog extends FormBase {
         
         $image_factory = \Drupal::service('image.factory');
         $supported_extensions = $image_factory ->getSupportedExtensions();
+        \Drupal::logger('canto_connector')->notice('allowExtension:'.implode(';', $supported_extensions));
         $form['#attached']['drupalSettings']['canto_connector']['allowExtensions'] = implode(';', $supported_extensions);
         
     }  
@@ -120,18 +121,19 @@ class CantoConnectorDialog extends FormBase {
      
      if(strlen($cantoFiles)>1)
      {
-         $assets = explode(";", $cantoFiles);
+         $assets = explode("|", $cantoFiles);
          
          foreach ( $assets as $item)
          {
              if(strlen($item) > 1)
-             {
-                 
-                 $array=explode(",", $item);
-                 $url =  $array[0];
-                 $fileName=$array[1];
-                 \Drupal::logger('canto_connector')->notice('original_image-'.$url);
-                 
+             {                
+//                  $array=explode(",", $item);
+//                  $url =  $array[0];
+//                  $fileName=$array[1];
+                 $url= substr($item,0,strpos($item,","));
+                 $fileName=substr($item,strpos($item,",")+1);
+                  \Drupal::logger('canto_connector')->notice('canto_image_url:'.$url);
+                  \Drupal::logger('canto_connector')->notice('canto_image_filename:'.$fileName);
                  $local = system_retrieve_file($url, 'public://'.$fileName, TRUE, FILE_EXISTS_REPLACE);
                  
                  $efid=$local->id();
@@ -178,7 +180,7 @@ class CantoConnectorDialog extends FormBase {
           
           $connector = new OAuthConnector();
           $isValid = $connector->checkAccessTokenValid($subDomain, $accessToken);
-          \Drupal::logger('canto_connector')->notice("check access token valid");
+//           \Drupal::logger('canto_connector')->notice("check access token valid");
           if (! $isValid) {
               $this->repository->delete($entry);
               \Drupal::logger('canto_connector')->notice("delete invalid token");

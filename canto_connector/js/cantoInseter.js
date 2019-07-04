@@ -13,7 +13,7 @@
 	    var imageHtml = "";
 	    var size=0;
 	    for(var i = 0; i < assetArray.length; i++){
-	    	 imageHtml +=  assetArray[i].directUri + ','+  assetArray[i].displayName +';';
+	    	 imageHtml +=  assetArray[i].directUri + ','+  assetArray[i].displayName +'|';
 	        size+=assetArray[i].size;
 	    }
 	    if(size>134217728)
@@ -42,6 +42,7 @@
 	  
   $(function () {
 	  console.log(drupalSettings.canto_connector.env);
+	  console.log("allowExtension:"+drupalSettings.canto_connector.allowExtensions);
 	  $('#cantoUC').cantoUC({
 		  env: drupalSettings.canto_connector.env?drupalSettings.canto_connector.env:'canto.com',
 		  accessToken: drupalSettings.canto_connector.accessToken,
