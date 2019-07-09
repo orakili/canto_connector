@@ -6,4 +6,4 @@ package: Images
 version: '8.x-2.8'
 core: '8.x'
 project: 'canto_connector'
-datestamp: 1541740519
+datestamp: 1562638168
