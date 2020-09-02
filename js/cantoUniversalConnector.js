@@ -14,7 +14,7 @@
     formatDistrict;
 
     cantoUC = $.fn[pluginName] = $[pluginName] = function (options, callback) {
-        /*! options.env:   flightbycanto.com/staging.cantoflight.com/canto.com/canto.global
+        /*! options.env: flightbycanto.com/staging.cantoflight.com/canto.com/canto.global
         */
         settings(options);
         callback = callback;
@@ -50,9 +50,7 @@
                 callback(currentCantoTagID, data.assetList);
 
             } else {
-                if(!data.accessToken){
-                    return;
-                }
+                if(!data.accessToken){ return;}
             	$.ajax({
                     url: Drupal.url('canto_connector/save_access_token'),
                     type: 'POST',
@@ -61,7 +59,6 @@
                   });
                 tokenInfo = data;
                 var cantoContentPage = "https://s3-us-west-2.amazonaws.com/static.dmc/universal/cantoContent.html";
-                //var cantoContentPage = "./cantoAssets/cantoContent.html";
                 $("#cantoUCFrame").attr("src", cantoContentPage);
             }
     
@@ -112,16 +109,8 @@
     function loadIframeContent() {
 
         var cantoLoginPage = "https://oauth." + env + "/oauth/api/oauth2/universal/authorize?response_type=code&app_id=" + appId + "&redirect_uri=http://loacalhost:3000&state=abcd";
-        //environment.
-        /* If you want to deploy this to env, please select one and delete others, include above.*/
-        // var cantoLoginPage = "https://oauth.flightbycanto.com/oauth/api/oauth2/universal/authorize?response_type=code&app_id=f5ecd6095ebb469691b7398e4945eb44&redirect_uri=http://loacalhost:3000&state=abcd";
-        // var cantoLoginPage = "https://oauth.staging.cantoflight.com/oauth/api/oauth2/universal/authorize?response_type=code&app_id=f18c8f3b79644b168cad5609ff802085&redirect_uri=http://loacalhost:3000&state=abcd";
-        // var cantoLoginPage = "https://oauth.canto.com/oauth/api/oauth2/universal/authorize?response_type=code&app_id=a9dc81b1bf9d492f8ee3838302d266b2&redirect_uri=http://loacalhost:3000&state=abcd";
-        // var cantoLoginPage = "https://oauth.canto.global/oauth/api/oauth2/universal/authorize?response_type=code&app_id=f87b44d366464dfdb4867ab361683c96&redirect_uri=http://loacalhost:3000&state=abcd";
-        
+
          var cantoContentPage = "https://s3-us-west-2.amazonaws.com/static.dmc/universal/cantoContent.html";
-       // var cantoContentPage = "./cantoAssets/cantoContent.html";
-        // $("#cantoUCFrame").attr("src", cantoContentPage);
         if(tokenInfo.accessToken){
             $("#cantoUCFrame").attr("src", cantoContentPage);
         } else {

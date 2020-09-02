@@ -3,7 +3,8 @@ type: module
 configure: canto_connector.admin_settings_form
 description: This module used to connect canto flight to get resource.
 package: Images
-version: '8.x-2.9'
 core: '8.x'
+
+version: '8.x-3.0'
 project: 'canto_connector'
-datestamp: 1571901735
+datestamp: 1598956150
