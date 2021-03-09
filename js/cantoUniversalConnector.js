@@ -7,14 +7,14 @@
     pluginName = "cantoUC",
     redirectUri = "",
     tokenInfo = {},
-    env = "flightbycanto.com",  //flightbycanto.com/staging.cantoflight.com/canto.com/canto.global
+    env = "flightbycanto.com",  //flightbycanto.com/staging.cantoflight.com/canto.com/canto.global/canto.de/cantodemo.com
     appId = "f5ecd6095ebb469691b7398e4945eb44",
     callback,
     currentCantoTagID,
     formatDistrict;
 
     cantoUC = $.fn[pluginName] = $[pluginName] = function (options, callback) {
-        /*! options.env: flightbycanto.com/staging.cantoflight.com/canto.com/canto.global
+        /*! options.env: flightbycanto.com/staging.cantoflight.com/canto.com/canto.global/canto.de/cantodemo.com
         */
         settings(options);
         callback = callback;
@@ -69,7 +69,9 @@
             "flightbycanto.com":"f5ecd6095ebb469691b7398e4945eb44",
             "staging.cantoflight.com":"f18c8f3b79644b168cad5609ff802085",
             "canto.com":"a9dc81b1bf9d492f8ee3838302d266b2",
-            "canto.global":"f87b44d366464dfdb4867ab361683c96"
+            "canto.global":"f87b44d366464dfdb4867ab361683c96",
+            "canto.de":"e7135823e3d046468287e835008da493",
+            "cantodemo.com":"de5c606732a34b44b99ec20c40f6cb5e",
         };
         env = options.env;
         appId = envObj[env];

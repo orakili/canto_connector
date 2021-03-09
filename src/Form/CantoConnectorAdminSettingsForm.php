@@ -29,7 +29,8 @@ class CantoConnectorAdminSettingsForm extends ConfigFormBase {
                 'canto.global' => $this->t('canto.global'),
                 'staging.cantoflight.com' => $this->t('staging'),
                 'flightbycanto.com' => $this->t('dev'),
-                
+                'canto.de' => $this->t('canto.de'),
+                'cantodemo.com' => $this->t('cantodemo.com'),
             ],
             '#default_value' => $config->get('env')??'canto.com',
             '#attributes' => [
