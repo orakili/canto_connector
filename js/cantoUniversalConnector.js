@@ -9,9 +9,18 @@
     tokenInfo = {},
     env = "flightbycanto.com",  //flightbycanto.com/staging.cantoflight.com/canto.com/canto.global/canto.de/cantodemo.com
     appId = "f5ecd6095ebb469691b7398e4945eb44",
+    _workerID = "",
     callback,
     currentCantoTagID,
     formatDistrict;
+    var secretObj = {
+            "flightbycanto.com":"4610e1613b444a28bd5329784224a8ba2e725e6664744dd4ad405643c0d1eb84",
+            "staging.cantoflight.com":"114de1921619437a954a41bc5a5c99bb4d6ac397f6514f009c0b922fb8169ace",
+            "canto.com":"585070cc17ea463390e9224717dbdd85f2a2ff165ebb4083bbc7ff60f4f2e873",
+            "canto.global":"1d902fb7bf9843d99a7280fb660f35257ff75ffd41ed44bf8f759021bad24c44",
+            "canto.de":"3a093e70635c4a418f9e7e13d936d28f8250f2ca3a6d45c989b010c197bb27cf",
+            "cantodemo.com":"4a284948051449d485cb77b41bba86cf964cef9e4a9945d0a6d9e2714d9bf409",
+    };
 
     cantoUC = $.fn[pluginName] = $[pluginName] = function (options, callback) {
         /*! options.env: flightbycanto.com/staging.cantoflight.com/canto.com/canto.global/canto.de/cantodemo.com
@@ -96,8 +105,81 @@
             //currentCantoTagID = $(e.target).closest("canto").attr("id");
             $("#cantoUCPanel").removeClass("hidden");
             loadIframeContent();
+        })
+        .on('click', ".js-canto-oauth-btn", function(e){
+            var getSSOcodeURL = "https://oauth." + env + "/oauth/api/oauth2/ssocode?worker_id=" + _workerID;
+            $.ajax({  
+	            type: "GET",
+	            url: getSSOcodeURL,
+	            async: false,  
+	            error: function(request) {
+                    alert("Get login url failed, please retry");
+                    $("#cantoUCPanel").addClass("hidden");
+                },  
+                success: function(data) {
+                    getTokenByOauthCode(data);
+                } 
+            });
         });
     }
+    /*--------------------------get token by code---------------------------------------*/
+    function getTokenByOauthCode(authorizationCode){
+        var url = "https://oauth." + env + ":443/oauth/api/oauth2/token";
+        var redirectUri = "https://oauth." + env + "/oauth/loading.html";
+
+        var data = {
+            app_id: appId,
+            app_secret: secretObj[env],
+            grant_type: "authorization_code",
+            redirect_uri: redirectUri,
+            code: authorizationCode,
+            url: url,
+            timeout: 8000
+          };
+        $.ajax({  
+            type: "POST",
+            url: url,
+            async: false,  
+            data: data,
+            error: function(request) {
+                alert("Get login url failed, please retry");
+                $("#cantoUCPanel").addClass("hidden");
+            },  
+            success: function(data) {
+                // console.log(data);
+                getTenant(data)
+            } 
+        });
+    }
+    function getTenant(tokens){
+        var url = "https://oauth." + env + ":443/oauth/api/oauth2/tenant/" + tokens.refreshToken;
+        $.ajax({  
+            type: "GET",
+            url: url,
+            async: false,  
+            error: function(request) {
+                alert("Get login url failed, please retry");
+                $("#cantoUCPanel").addClass("hidden");
+            },  
+            success: function(data) {
+                // console.log(data);
+                tokens.refreshToken = data;
+                saveTokenToDrupal(tokens);
+            } 
+        });
+    }
+    function saveTokenToDrupal(tokens){
+        var result = { 'accessToken': tokens.accessToken, 'tokenType': tokens.tokenType, 'subdomain':tokens.refreshToken};
+        $.ajax({
+            url: Drupal.url('canto_connector/save_access_token'),
+            type: 'POST',
+            data: result,
+            dataType: 'json',
+          });
+        tokenInfo = tokens;
+        loadIframeContent();
+    }
+
     /*--------------------------load iframe content---------------------------------------*/
     function initCantoTag(){
         var body = $("body");
@@ -110,13 +192,34 @@
     /*--------------------------load iframe content---------------------------------------*/
     function loadIframeContent() {
 
-        var cantoLoginPage = "https://oauth." + env + "/oauth/api/oauth2/universal/authorize?response_type=code&app_id=" + appId + "&redirect_uri=http://loacalhost:3000&state=abcd";
+        var cantoLoginPage = "https://oauth." + env + "/oauth/api/oauth2/compatible/authorize?response_type=code&app_id=" + appId + "&redirect_uri=http://loacalhost:3000&state=abcd";
 
          var cantoContentPage = "https://s3-us-west-2.amazonaws.com/static.dmc/universal/cantoContent.html";
         if(tokenInfo.accessToken){
             $("#cantoUCFrame").attr("src", cantoContentPage);
+            $(".canto-sso-section").addClass("hidden");
+            $("#cantoUCFrame").removeClass("hidden");
         } else {
-            $("#cantoUCFrame").attr("src", cantoLoginPage);
+            var getSSOwidURL = "https://oauth." + env + "/oauth/api/oauth2/ssowid";
+            $.ajax({  
+	            type: "GET",
+	            url: getSSOwidURL,
+	            data:$('#frmGrant').serialize(),
+	            async: false,  
+	            error: function(request) {
+                    alert("Get login url failed, please retry");
+                    $("#cantoUCPanel").addClass("hidden");
+                },  
+                success: function(data) {
+                    _workerID = data;
+                    cantoLoginPage += "&worker_id=" + data;
+                    $("#cantoUCFrame").attr("src", cantoLoginPage);
+                    window.open(cantoLoginPage, '_blank');
+                    $(".canto-sso-section").removeClass("hidden");
+                    $("#cantoUCFrame").addClass("hidden");
+                } 
+            });
+            
         }
     }
     /*--------------------------add iframe---------------------------------------*/
@@ -127,7 +230,13 @@
         iframeHtml += '<div class="title">Canto Content</div>';
         iframeHtml += '<div class="close-btn icon-s-closeicon-16px canto-uc-iframe-close-btn"></div>';
         iframeHtml += '</div>';
-        iframeHtml += '<iframe id="cantoUCFrame" class="canto-uc-subiframe" src=""></iframe>';
+        iframeHtml += '<div class="canto-sso-section">';
+        iframeHtml += '<div class="sso-description">Please finish authorization in the new browser tab</div>'
+        iframeHtml += '<div class="sso-description"><b>Note:</b> You may need to configure your browser to allow pop-up windows.</div>';
+        iframeHtml += '<div class="sso-description">If you have finished authorization, please click <b>"Continue"</b> to proceed using Canto. </div>';
+        iframeHtml += '<div class="submit-button js-canto-oauth-btn">Continue</div>';
+        iframeHtml += '</div>';
+        iframeHtml += '<iframe id="cantoUCFrame" class="canto-uc-subiframe hidden" src=""></iframe>';
         iframeHtml += '</div>';
         
         body.append(iframeHtml);

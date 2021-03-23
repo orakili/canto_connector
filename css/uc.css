@@ -1009,3 +1009,27 @@ body { font-family: sans-serif, Helvetica, Arial; font-size: 14px; line-height: 
 .error{color:red; visibility:visible; padding-left:10px;}
 
 .info{visibility:hidden;}
+
+.canto-sso-section{
+    margin-top: 20vh;
+}
+.canto-sso-section .sso-description{
+    text-align: center;
+    margin: 20px 10px;
+    font-size: 13px;
+}
+.canto-sso-section .submit-button{
+    display: block;
+    text-align: center;
+    width: 100px;
+    margin: auto;
+    background-color: #f3a41e;
+    height: 30px;
+    line-height: 30px;
+    border-radius: 15px;
+    margin-top: 30px;
+    position: relative;
+    color: #fff;
+    font-size: 14px;
+    cursor: pointer;
+}
