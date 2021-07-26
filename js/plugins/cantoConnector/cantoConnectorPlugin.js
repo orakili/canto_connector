@@ -17,6 +17,16 @@
   var insertContent;
 
   var cantoConnectorSaveCallback = function(data) {
+    // var arr = data.split('<img alt=');
+    // var htmlString = '';
+    // for(var i = 0; i < arr.length; i++){
+    //   if(arr[i].length) {
+    //     var index = arr[i].indexOf(' src=');
+    //     var imgName = arr[i].substring(0, index);
+    //     var url = arr[i].substring(index + 5, arr[i].length-1);
+    //     htmlString += "<img alt='" + imgName + "' src='" + url + "'/>";
+    //   }
+    // }
     insertContent(data);
   };
 

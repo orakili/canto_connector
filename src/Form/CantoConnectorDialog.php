@@ -2,6 +2,8 @@
 
 namespace Drupal\canto_connector\Form;
 
+use Drupal\Core\File\FileSystemInterface;
+use Drupal\user\Entity\User;
 use Drupal\Core\Field\TypedData\FieldItemDataDefinition;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
@@ -36,7 +38,8 @@ class CantoConnectorDialog extends FormBase {
 
   public static function create(ContainerInterface $container) {
     return new static(
-      $container->get('entity.manager')->getStorage('file'),
+    //   $container->get('entity.manager')->getStorage('file'),
+      $container->get('entity_type.manager')->getStorage('file'),
       $container->get('canto_connector.repository') ,
       $container->get('string_translation'));
   }
@@ -134,7 +137,8 @@ class CantoConnectorDialog extends FormBase {
                  $fileName=substr($item,strpos($item,",")+1);
                   \Drupal::logger('canto_connector')->notice('canto_image_url:'.$url);
                   \Drupal::logger('canto_connector')->notice('canto_image_filename:'.$fileName);
-                 $local = system_retrieve_file($url, 'public://'.$fileName, TRUE, FILE_EXISTS_REPLACE);
+                //  $local = system_retrieve_file($url, 'public://'.$fileName, TRUE, FILE_EXISTS_REPLACE);
+                 $local = system_retrieve_file($url, 'public://'.$fileName, TRUE, FileSystemInterface::EXISTS_REPLACE);
                  
                  $efid=$local->id();
                  $file=File::load($efid);
@@ -143,7 +147,7 @@ class CantoConnectorDialog extends FormBase {
                  $image_path = file_url_transform_relative(file_create_url($drupal_file_uri));
                  \Drupal::logger('canto_connector')->notice("image_path-". $image_path);
                  
-                 $insertHTML .= "<img alt=".$fileName." src=". $image_path.">";
+                 $insertHTML .= "<img alt='".$fileName."' src='". $image_path."'>";
                  $this->createMedia($efid);
                  $form_state->setValue('cantofid','');
                  $form_state->setValue('insertHTML',$insertHTML);
@@ -159,7 +163,8 @@ class CantoConnectorDialog extends FormBase {
   
   public function CheckAccessToken()
   {
-      $user =  \Drupal\user\Entity\User::load(\Drupal::currentUser()->id());
+    //   $user =  \Drupal\user\Entity\User::load(\Drupal::currentUser()->id());
+      $user =  User::load(\Drupal::currentUser()->id());
       $userId= $user->get('uid')->value;
       $envSettings=$this->config('canto_connector.settings')->get('env');
       $env=($envSettings === NULL)?"canto.com":$envSettings;
@@ -191,7 +196,8 @@ class CantoConnectorDialog extends FormBase {
   }
   
   public function createMedia(int $fid) {
-      $info = system_get_info('module', 'media');
+    //   $info = system_get_info('module', 'media');
+      $info = \Drupal::service('extension.list.module')->getExtensionInfo('media');
       if ($info) {
           $file = \Drupal::entityTypeManager()->getStorage('file')->load($fid);
           

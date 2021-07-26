@@ -1,6 +1,7 @@
 <?php
 
 namespace Drupal\canto_connector\Controller;
+use Drupal\user\Entity\User;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Render\RendererInterface;
 use Drupal\canto_connector\CantoConnectorRepository;
@@ -25,7 +26,8 @@ class CantoConnectorOAuthController extends ControllerBase {
   
     public function saveAccessToken(Request $request) {
         \Drupal::logger('canto_connector')->notice('saveAccessToken');
-         $user =  \Drupal\user\Entity\User::load(\Drupal::currentUser()->id());
+        //  $user =  \Drupal\user\Entity\User::load(\Drupal::currentUser()->id());
+        $user =  User::load(\Drupal::currentUser()->id());
         $userId= $user->get('uid')->value;
         $env=$this->config('canto_connector.settings')->get('env');
 
@@ -46,7 +48,8 @@ class CantoConnectorOAuthController extends ControllerBase {
     
     public function deleteAccessToken(Request $request) {
         \Drupal::logger('canto_connector')->notice('deleteAccessToken');
-        $user =  \Drupal\user\Entity\User::load(\Drupal::currentUser()->id());
+        // $user =  \Drupal\user\Entity\User::load(\Drupal::currentUser()->id());
+        $user =  User::load(\Drupal::currentUser()->id());
         $userId= $user->get('uid')->value;
         $entry = [
             'accessToken' => $request->request->get('accessToken'),
