@@ -6,18 +6,18 @@ use Drupal\Core\Form\ConfigFormBase;
 use Drupal\Core\Form\FormStateInterface;
 
 class CantoConnectorAdminSettingsForm extends ConfigFormBase {
-    
+
 
     public function getFormId() {
         return 'canto_connector_admin_settings';
     }
-    
+
     protected function getEditableConfigNames() {
         return [
             'canto_connector.settings',
         ];
     }
-    
+
     public function buildForm(array $form, FormStateInterface $form_state) {
         $config = $this->config('canto_connector.settings');
 
@@ -27,28 +27,29 @@ class CantoConnectorAdminSettingsForm extends ConfigFormBase {
             '#options' => [
                 'canto.com' => $this->t('canto.com'),
                 'canto.global' => $this->t('canto.global'),
-                'staging.cantoflight.com' => $this->t('staging'),
-                'flightbycanto.com' => $this->t('dev'),
+//                'staging.cantoflight.com' => $this->t('staging'),
+//                'flightbycanto.com' => $this->t('dev'),
                 'canto.de' => $this->t('canto.de'),
-                'cantodemo.com' => $this->t('cantodemo.com'),
+                'ca.canto.com' => $this->t('ca.canto.com'),
+//                'cantodemo.com' => $this->t('cantodemo.com'),
             ],
             '#default_value' => $config->get('env')??'canto.com',
             '#attributes' => [
                 'data-editor-canto_connector-canto' => 'env',
             ],
-            
+
         ];
-        
+
         return parent::buildForm($form, $form_state);
     }
-    
+
 
     public function submitForm(array &$form, FormStateInterface $form_state) {
         // Retrieve the configuration
         $this->configFactory->getEditable('canto_connector.settings')
         ->set('env', $form_state->getValue('env'))
         ->save();
-        
+
         parent::submitForm($form, $form_state);
     }
 }
