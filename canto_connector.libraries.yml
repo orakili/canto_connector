@@ -1,15 +1,13 @@
-canto_connector.inserter:
- # Add css file.
+canto_connector.entity_browser:
+  # Add css file.
   css:
     component:
       css/uc.css: {}
   js:
-    js/cantoInseter.js: {}
+    js/cantoEntityBrowserInseter.js: {}
   dependencies:
     - core/jquery
     - core/drupalSettings
-    - canto_connector.uc
-
 canto_connector.uc:
   # Add js files.
   js:
@@ -17,3 +15,4 @@ canto_connector.uc:
   dependencies:
     - core/jquery
     - core/drupal
+    - core/once

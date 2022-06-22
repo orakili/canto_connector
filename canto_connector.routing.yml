@@ -1,3 +1,4 @@
+#@todo add permissions for protected paged. access conetnet is a security risk
 canto_connector.image_dialog:
   path: '/canto_connector/dialog/image/{filter_format}'
   defaults:
@@ -7,7 +8,7 @@ canto_connector.image_dialog:
     _theme: ajax_base_page
   requirements:
     _entity_access: 'filter_format.use'
-    
+
 canto_connector.admin_settings_form:
   path: '/admin/config/search/canto_connector'
   defaults:
@@ -15,17 +16,31 @@ canto_connector.admin_settings_form:
     _title: 'Canto Connector Settings'
   requirements:
     _permission: 'administer site configuration'
-    
+
 canto_connector.save_access_token:
   path: '/canto_connector/save_access_token'
   defaults:
     _controller: '\Drupal\canto_connector\Controller\CantoConnectorOAuthController::saveAccessToken'
   requirements:
-    _permission: 'access content'
-  
+    _user_is_logged_in: 'TRUE'
+    # @todo user: \d+
+  options:
+    no_cache: 'TRUE'
+
 canto_connector.delete_access_token:
   path: '/canto_connector/delete_access_token'
   defaults:
     _controller: '\Drupal\canto_connector\Controller\CantoConnectorOAuthController::deleteAccessToken'
   requirements:
-    _permission: 'access content'  
+    _user_is_logged_in: 'TRUE'
+    # @todo user: \d+
+  options:
+    no_cache: 'TRUE'
+
+canto_connector.static:
+  path: '/canto-assets/static/universal/{file}'
+  defaults:
+    _title: 'Canto Assets'
+    _controller: '\Drupal\canto_connector\Controller\CantoConnectorStaticController::build'
+  requirements:
+    _permission: 'access content'

@@ -1,12 +1,21 @@
 <?php
+
+/**
+ * @file
+ * Contains Schema and update hooks for canto_connector module.
+ */
+
+/**
+ * Define the schema where oauth information is stored.
+ */
 function canto_connector_schema() {
   $schema['canto_oauth_domain'] = [
     'fields' => [
-    'id' => array(
+      'id' => [
         'type' => 'serial',
         'not null' => TRUE,
         'description' => 'Primary Key: Unique person ID.',
-      ),
+      ],
       'uid' => [
         'type' => 'int',
         'not null' => TRUE,

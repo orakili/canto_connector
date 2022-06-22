@@ -1,4 +1,5 @@
 <?php
+
 namespace Drupal\canto_connector;
 
 use Drupal\Core\Database\Connection;
@@ -52,6 +53,9 @@ class CantoConnectorRepository {
     $this->setMessenger($messenger);
   }
 
+  /**
+   * Insert an access record.
+   */
   public function insert(array $entry) {
     $return_value = NULL;
     try {
@@ -60,13 +64,12 @@ class CantoConnectorRepository {
         ->execute();
     }
     catch (\Exception $e) {
-      $this->messenger()->addMessage(t('db_insert failed. Message = %message', [
+      $this->messenger()->addMessage($this->t('db_insert failed. Message = %message', [
         '%message' => $e->getMessage(),
       ]), 'error');
     }
     return $return_value;
   }
-
 
   /**
    * Delete an entry from the database.
@@ -78,27 +81,27 @@ class CantoConnectorRepository {
    * @see Drupal\Core\Database\Connection::delete()
    */
   public function delete(array $entry) {
-      $query = $this->connection->delete('canto_oauth_domain');
+    $query = $this->connection->delete('canto_oauth_domain');
     foreach ($entry as $field => $value) {
-        $query->condition($field, $value);
+      $query->condition($field, $value);
     }
-    $query ->execute();
+    $query->execute();
   }
 
- 
-
-
+  /**
+   * Returns access token from the database.
+   */
   public function getAccessToken(array $entry = []) {
 
-      $select = $this->connection->select('canto_oauth_domain')->fields('canto_oauth_domain');
-      foreach ($entry as $field => $value) {
-          $select->condition($field, $value);
-      }
+    $select = $this->connection->select('canto_oauth_domain')->fields('canto_oauth_domain');
+    foreach ($entry as $field => $value) {
+      $select->condition($field, $value);
+    }
 
-      $entries = $select->execute()->fetchAll(\PDO::FETCH_ASSOC);//Fetch as an associative array.
+    // Fetch as an associative array.
+    $entries = $select->execute()->fetchAll(\PDO::FETCH_ASSOC);
     return $entries;
-   
-    
+
   }
 
 }
