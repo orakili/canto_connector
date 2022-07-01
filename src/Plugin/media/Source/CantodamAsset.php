@@ -2,10 +2,11 @@
 
 namespace Drupal\canto_connector\Plugin\media\Source;
 
+use Drupal\Component\Serialization\Json;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\file\FileInterface;
 use Drupal\media\MediaInterface;
-use Drupal\media\Plugin\media\Source\Image;
+use Drupal\media\MediaSourceBase;
 
 /**
  * Provides media type plugin for DAM assets.
@@ -15,11 +16,13 @@ use Drupal\media\Plugin\media\Source\Image;
  *   label = @Translation("Canto DAM asset"),
  *   description = @Translation("Provides business logic and metadata for
  *   assets stored on Canto DAM."),
- *   allowed_field_types = {"string"},
+ *   allowed_field_types = {"string", "json_native"},
  *   default_thumbnail_filename = "no-thumbnail.png",
  * )
  */
-class CantodamAsset extends Image {
+class CantodamAsset extends MediaSourceBase {
+
+  const METADATA_FIELD_NAME = 'field_cantodam_asset_metadata';
 
   /**
    * The media entity that is being wrapped.
@@ -27,6 +30,13 @@ class CantodamAsset extends Image {
    * @var \Drupal\media\MediaInterface
    */
   protected $mediaEntity;
+
+  /**
+   * Statically cached metadata information for the given assets.
+   *
+   * @var array
+   */
+  protected $metadata;
 
   /**
    * {@inheritdoc}
@@ -43,6 +53,7 @@ class CantodamAsset extends Image {
   public function defaultConfiguration() {
     return [
       'source_field' => 'field_cantodam_asset_id',
+      'metadata_field' => CantodamAsset::METADATA_FIELD_NAME,
     ];
   }
 
@@ -75,6 +86,63 @@ class CantodamAsset extends Image {
       $field_storage->save();
       $this->configuration['source_field'] = $field_storage->getName();
     }
+
+    $metadata_field_name = $this->defaultConfiguration()['metadata_field'];
+    // Check if it already exists so it can be used as a shared field.
+    $existing_metadata_field = $storage->load('media.' . $metadata_field_name);
+
+    // Set or create the source field.
+    if ($existing_metadata_field) {
+      // If the default field already exists, return the default field name.
+      $this->configuration['metadata_field'] = $metadata_field_name;
+    }
+    else {
+      // Default source field name does not exist, so create a new one.
+      $metadata_field_storage = $this->createMetadataFieldStorage();
+      $metadata_field_storage->save();
+      $this->configuration['metadata_field'] = $metadata_field_storage->getName();
+    }
+  }
+
+  /**
+   * {@inheritdoc}
+   *
+   * @todo fix with appropriate canto fields.
+   */
+  public function getMetadataAttributes() {
+    $fields = [
+      'file' => $this->t('File'),
+      'metadata' => $this->t('Metadata'),
+      'uuid' => $this->t('ID'),
+      'name' => $this->t('Name'),
+      'description' => $this->t('Description'),
+      'approval_status' => $this->t('Approval Status'),
+      'tags' => $this->t('Tags'),
+      'scheme' => $this->t('Type'),
+      'smart_tags' => $this->t('Smart Tags'),
+      'thumbnail_urls' => $this->t('Thumbnail urls'),
+      'width' => $this->t('Width'),
+      'height' => $this->t('Height'),
+      'created' => $this->t('Date created'),
+      'modified' => $this->t('Data modified'),
+    ];
+
+    return $fields;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function createMetaDataFieldStorage() {
+    $default_field_name = $this->defaultConfiguration()['metadata_field'];
+    // Create the field.
+    return $this->entityTypeManager->getStorage('field_storage_config')->create(
+      [
+        'entity_type' => 'media',
+        'field_name' => $default_field_name,
+        'type' => next($this->pluginDefinition['allowed_field_types']),
+      ]
+    );
   }
 
   /**
@@ -93,38 +161,63 @@ class CantodamAsset extends Image {
   }
 
   /**
+   * Ensures the given media entity has Canto metadata information in place.
+   *
+   * @param \Drupal\media\MediaInterface $media
+   *   The media entity.
+   *
+   * @return bool
+   *   TRUE if the metadata is ensured. Otherwise, FALSE.
+   *
+   * @todo add the method.
+   */
+  public function ensureMetadata(MediaInterface $media) {
+    if (!$media->hasField(CantodamAsset::METADATA_FIELD_NAME)) {
+      \Drupal::logger('canto')
+        ->error('The media type @type must have a canto metadata field named "canto_metadata".', [
+          '@type' => $media->bundle(),
+        ]);
+      return FALSE;
+    }
+    $mediaId = $this->getSourceFieldValue($media);
+    $metadata = Json::decode($media->get(CantodamAsset::METADATA_FIELD_NAME)->value);
+    if (is_array($metadata)) {
+      $this->metadata[$mediaId] = $metadata;
+    }
+    return TRUE;
+  }
+
+  /**
    * {@inheritDoc}
    */
   public function getMetadata(MediaInterface $media, $name) {
+    if (!$this->ensureMetadata($media)) {
+      throw new \RuntimeException('Metadata field not found.');
+    }
     $field = $this->getAssetFileField($media);
     $file = $media->get($field)->entity;
     // If the source field is not required, it may be empty.
     if (!$file) {
       return parent::getMetadata($media, $name);
     }
-    $uri = $file->getFileUri();
     switch ($name) {
       case 'default_name':
         return parent::getMetadata($media, 'default_name');
-
-      case static::METADATA_ATTRIBUTE_WIDTH:
-        $image = $this->imageFactory->get($uri);
-        return $image->getWidth() ?: NULL;
-
-      case static::METADATA_ATTRIBUTE_HEIGHT:
-        $image = $this->imageFactory->get($uri);
-        return $image->getHeight() ?: NULL;
 
       case 'file':
         $is_file = !empty($file) && $file instanceof FileInterface;
         return $is_file ? $file->id() : NULL;
 
       case 'thumbnail_uri':
-        return $uri;
+        $remoteThumbnail = $this?->metadata[$this->getSourceFieldValue($media)]['previewUri'];
+        $thumbFile = system_retrieve_file($remoteThumbnail, NULL, TRUE);
+        $isFile = !empty($thumbFile) && $file instanceof FileInterface;
+        return $isFile ? $thumbFile->getFileUri() : NULL;
+
+      default:
+        parent::getMetadata($media, $name);
 
     }
-    // @todo Change the autogenerated stub.
-    // return parent::getMetadata($media, $name);
   }
 
   /**
@@ -144,6 +237,7 @@ class CantodamAsset extends Image {
       $field_map = !empty($bundle) ? $bundle->getFieldMap() : FALSE;
     }
     catch (\Exception $exception) {
+      watchdog_exception('error', $exception->getMessage());
       return FALSE;
     }
     return empty($field_map['file']) ? FALSE : $field_map['file'];
@@ -172,17 +266,6 @@ class CantodamAsset extends Image {
       }
     }
     return NULL;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function getMetadataAttributes() {
-    $attributes = parent::getMetadataAttributes();
-    $attributes += [
-      'file' => $this->t('File'),
-    ];
-    return $attributes;
   }
 
 }

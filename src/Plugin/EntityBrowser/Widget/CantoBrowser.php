@@ -4,6 +4,7 @@ namespace Drupal\canto_connector\Plugin\EntityBrowser\Widget;
 
 use Drupal\canto_connector\OAuthConnector;
 use Drupal\canto_connector\CantoConnectorRepository;
+use Drupal\canto_connector\Plugin\media\Source\CantodamAsset;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\EntityFieldManagerInterface;
 use Drupal\Core\Entity\EntityInterface;
@@ -11,14 +12,17 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Image\ImageFactory;
-use Drupal\Core\Language\LanguageInterface;
+use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Url;
+use Drupal\Core\Utility\Token;
 use Drupal\entity_browser\WidgetBase;
 use Drupal\entity_browser\WidgetValidationManager;
 use Drupal\file\FileInterface;
 use Drupal\Component\Serialization\Json;
 use Drupal\media\Entity\MediaType;
+use Drupal\media\MediaInterface;
+use Drupal\media\MediaTypeInterface;
 use Drupal\media\MediaSourceManager;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
@@ -80,6 +84,20 @@ class CantoBrowser extends WidgetBase {
   protected $imageFactory;
 
   /**
+   * The current user account.
+   *
+   * @var \Drupal\Core\Language\LanguageManagerInterface
+   */
+  protected $languageManager;
+
+  /**
+   * The token service.
+   *
+   * @var \Drupal\Core\Utility\Token
+   */
+  protected $token;
+
+  /**
    * Canto browser constructor.
    *
    * {@inheritdoc}
@@ -97,7 +115,9 @@ class CantoBrowser extends WidgetBase {
     RequestStack $requestStack,
     CantoConnectorRepository $repository,
     ConfigFactoryInterface $config,
-    ImageFactory $imageFactory) {
+    ImageFactory $imageFactory,
+    LanguageManagerInterface $languageManager,
+    Token $token) {
 
     parent::__construct($configuration, $plugin_id, $plugin_definition, $event_dispatcher, $entity_type_manager, $validation_manager);
     $this->user = $account;
@@ -107,6 +127,8 @@ class CantoBrowser extends WidgetBase {
     $this->repository = $repository;
     $this->config = $config;
     $this->imageFactory = $imageFactory;
+    $this->languageManager = $languageManager;
+    $this->token = $token;
   }
 
   /**
@@ -125,7 +147,9 @@ class CantoBrowser extends WidgetBase {
       $container->get('request_stack'),
       $container->get('canto_connector.repository'),
       $container->get('config.factory'),
-      $container->get('image.factory'));
+      $container->get('image.factory'),
+      $container->get('language_manager'),
+      $container->get('token'));
   }
 
   /**
@@ -243,7 +267,6 @@ class CantoBrowser extends WidgetBase {
     $userId = $user->id();
     $envSettings = $this->config->get('canto_connector.settings')->get('env');
     $env = ($envSettings === NULL) ? "canto.com" : $envSettings;
-    $entries = [];
 
     $entry = [
       'uid' => $userId,
@@ -275,8 +298,8 @@ class CantoBrowser extends WidgetBase {
       $fieldDefinitions = $this->entityFieldManager->getFieldDefinitions('media', $mediaBundle->id());
       // Load the file settings to validate against.
       $fieldMap = $mediaBundle->getFieldMap();
-      if (!isset($fieldMap['file'])) {
-        $message = $this->t('Missing file mapping. Check your media configuration.');
+      if (!isset($fieldMap['file']) || !isset($fieldMap['metadata'])) {
+        $message = $this->t('Missing file/Metadata mapping. Check your media configuration.');
         $formState->setError($form['widget'], $message);
         return;
       }
@@ -332,11 +355,19 @@ class CantoBrowser extends WidgetBase {
    * {@inheritdoc}
    */
   public function submit(array &$element, array &$form, FormStateInterface $form_state) {
-    $assets = [];
     if (!empty($form_state->getTriggeringElement()['#eb_widget_main_submit'])) {
-      $assets = $this->prepareEntities($form, $form_state);
+      try {
+        $media = $this->prepareEntities($form, $form_state);
+        array_walk($media, function (MediaInterface $media_item) {
+          $media_item->save();
+        });
+        $this->selectEntities($media, $form_state);
+      }
+      catch (\UnexpectedValueException $e) {
+        $this->messenger()
+          ->addError($this->t('Canto integration is not configured correctly. Please contact the site administrator.'));
+      }
     }
-    $this->selectEntities($assets, $form_state);
   }
 
   /**
@@ -344,43 +375,45 @@ class CantoBrowser extends WidgetBase {
    */
   protected function prepareEntities(array $form, FormStateInterface $formState) {
     $assets = $formState->getValue('assets');
-    // Get canto assets ids;.
+    // Get the remaining asset ids:
     $assetIds = array_keys($assets);
-    // Load type information.
-    /** @var \Drupal\media\MediaTypeInterface $media_type */
-    $media_type = $this->entityTypeManager->getStorage('media_type')
-      ->load($this->configuration['media_type']);
-    // Get the source field for this type which stores the asset id.
-    $source_field = $media_type->getSource()
-      ->getSourceFieldDefinition($media_type)
-      ->getName();
-    // Query for existing entities.
-    $existing_ids = $this->getExistingEntities($media_type, $source_field, $assetIds);
-    // Load the entities found.
-    $entities = $this->entityTypeManager->getStorage('media')
-      ->loadMultiple($existing_ids);
-    // Loop through the existing entities.
-    foreach ($entities as $entity) {
-      // Set the asset id of the current entity.
-      $assetId = $entity->get($source_field)->value;
-      // If the asset id of the entity is in the list of asset id's selected.
-      if (in_array($assetId, $assetIds)) {
-        // Remove the asset id from the input so it does not get fetched
-        // and does not get created as a duplicate.
-        unset($assets[$assetId]);
+    if ($assetIds) {
+      // Load type information.
+      /** @var \Drupal\media\MediaTypeInterface $media_type */
+      $media_type = $this->entityTypeManager->getStorage('media_type')
+        ->load($this->configuration['media_type']);
+      // Get the source field for this type which stores the asset id.
+      $source_field = $media_type->getSource()
+        ->getSourceFieldDefinition($media_type)
+        ->getName();
+      // Query for existing entities.
+      $existing_ids = $this->getExistingEntities($media_type, $source_field, $assetIds);
+      // Load the entities found.
+      $entities[] = $this->entityTypeManager->getStorage('media')
+        ->loadMultiple($existing_ids);
+      // Loop through the existing entities.
+      foreach ($entities as $entity) {
+        // Get the asset id of the current entity.
+        $assetId = $entity->get($source_field)->value;
+        // If the asset id of the entity is in the list of asset id's selected.
+        if (in_array($assetId, $assetIds)) {
+          // Remove the asset id from the input so it does not get fetched
+          // and does not get created as a duplicate.
+          unset($assets[$assetId]);
+        }
       }
     }
-    // @todo Create canto asset utility class.
     // Loop through the returned assets.
-    foreach ($assets as $id => $info) {
+    foreach ($assets as $info) {
       // Get the file data from the directUri:
       $fileData = file_get_contents($info['directUri']);
       if (!$fileData) {
         return $formState->setError($form['widget']['assets_container'], $this->t('An error occurred during file retrieval.'));
       }
+      $destination = $this->getFileDestination($media_type);
       // @todo if the file exists should we use the original or the new one?
-      $file = file_save_data($fileData, 'public://' . $info['displayName'], FileSystemInterface::EXISTS_REPLACE);
-      $entity = $this->createMediaEntity($media_type, $file, $id);
+      $file = file_save_data($fileData, $destination . '/' . $info['displayName'], FileSystemInterface::EXISTS_REPLACE);
+      $entity = $this->createMediaEntity($media_type, $file, $info);
       // Add the new entity to the array of returned entities.
       $entities[] = $entity;
     }
@@ -394,13 +427,16 @@ class CantoBrowser extends WidgetBase {
    *   The media type object.
    * @param \Drupal\file\FileInterface $file
    *   The file to attach.
-   * @param string $assetId
-   *   The canto asset id.
+   * @param array $info
+   *   The canto asset info.
    *
    * @return \Drupal\Core\Entity\EntityInterface
    *   The media entity created.
    */
-  public function createMediaEntity(MediaType $mediaType, FileInterface $file, $assetId): EntityInterface {
+  public function createMediaEntity(MediaType $mediaType, FileInterface $file, array $info): EntityInterface {
+    $mediaBundleConfig = $this->entityTypeManager->getStorage('media_type');
+    $mediaBundle = $mediaBundleConfig->load($this->configuration['media_type']);
+    $fieldMap = $mediaBundle->getFieldMap();
     // Get the source field for this type which stores the asset id.
     $source_field = $mediaType->getSource()
       ->getSourceFieldDefinition($mediaType)
@@ -410,26 +446,21 @@ class CantoBrowser extends WidgetBase {
       'bundle' => $mediaType->id(),
       // This should be the current user id.
       'uid' => $this->user->id(),
-      // @todo This should be the current language code.
-      'langcode' => LanguageInterface::LANGCODE_DEFAULT,
-      // $this->languageManager->getCurrentLanguage()->getId(),
+      // This should be the current language code.
+      'langcode' => $this->languageManager->getCurrentLanguage()->getId(),
       // This should map the asset status to the drupal entity status.
       // @todo ($asset->status === 'active'),
       'status' => TRUE,
       // Set the entity name to the asset name.
       'name' => $file->label(),
-      'field_file' => ['target_id' => $file->id()],
+      $fieldMap['file'] => ['target_id' => $file->id()],
       // Set the chosen source field for this entity to the asset id.
-      $source_field => $assetId,
+      $source_field => $info['id'],
     ];
     // Create a new entity to represent the asset.
     $entity = $this->entityTypeManager->getStorage('media')
       ->create($entity_values);
-    // Save the entity.
-    $entity->save();
-    // Reload the entity to make sure we have everything populated properly.
-    $entity = $this->entityTypeManager->getStorage('media')
-      ->load($entity->id());
+    $entity->set(CantodamAsset::METADATA_FIELD_NAME, Json::encode($info));
     return $entity;
   }
 
@@ -439,10 +470,39 @@ class CantoBrowser extends WidgetBase {
   public function getExistingEntities($mediaType, $sourceField, $assetIds) {
     return $this->entityTypeManager->getStorage('media')
       ->getQuery()
+      // Add a tag to allow other modules to act on the query.
       ->addTag('canto_existing_entities')
       ->condition('bundle', $mediaType->id())
       ->condition($sourceField, $assetIds, 'IN')
       ->execute();
+  }
+
+  /**
+   * Get a destination uri from the given a entity type.
+   *
+   * @param \Drupal\media\MediaTypeInterface $mediaType
+   *   The media type to check the field configuration on.
+   *
+   * @return string
+   *   The uri to use. Defaults to public://cantodam_assets
+   */
+  public function getFileDestination(MediaTypeInterface $mediaType) {
+    $scheme = $this->config->get('system.file')->get('default_scheme');
+    $file_directory = 'cantodam_assets';
+
+    // Load the field definitions for this bundle.
+    $field_definitions = $this->entityFieldManager->getFieldDefinitions('media', $mediaType->id());
+    $map = $mediaType->getFieldMap();
+    if (!empty($map['file'])) {
+      $definition = $field_definitions[$map['file']]->getItemDefinition();
+      $scheme = $definition->getSetting('uri_scheme');
+      $file_directory = $definition->getSetting('file_directory');
+    }
+    // Replace the token for file directory.
+    if (!empty($file_directory)) {
+      $file_directory = $this->token->replace($file_directory);
+    }
+    return sprintf('%s://%s', $scheme, $file_directory);
   }
 
   /**

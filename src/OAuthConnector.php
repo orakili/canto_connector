@@ -26,20 +26,6 @@ class OAuthConnector {
 
     return $response->getStatusCode() == 200 ? $response->getBody()
       ->getContents() : FALSE;
-    // Get header and body:
-//    if ($response->getStatusCode() == 200) {
-//      return json_encode([
-//        "error" => 0,
-//        "user" => $response->getBody()->getContents(),
-//      ]);
-//    }
-//    else {
-//      $error = [
-//        "error" => 1,
-//        "error_code" => $response->getStatusCode(),
-//      ];
-//      return json_encode($error);
-//    }
   }
 
   /**
@@ -47,14 +33,6 @@ class OAuthConnector {
    */
   public static function checkAccessTokenValid(string $subDomain, string $accessToken): bool {
     return (bool) self::obtainUserInfo($subDomain, $accessToken);
-//    // Convert to array.
-//    $userInfoArray = json_decode($userInfoStr, TRUE);
-//    if ($userInfoArray['error'] == 0) {
-//      return TRUE;
-//    }
-//    else {
-//      return FALSE;
-//    }
   }
 
 }
