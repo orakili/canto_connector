@@ -1,0 +1,19 @@
+{
+    "name": "drupal/canto_connector",
+    "description": "DAM integration with Canto.",
+    "type": "drupal-module",
+    "license": "GPL-2.0-or-later",
+    "authors": [
+        {
+            "name": "awm",
+            "homepage": "https://www.drupal.org/u/awm"
+        },
+        {
+            "name": "flightdev",
+            "homepage": "https://www.drupal.org/u/flightdev"
+        }
+    ],
+    "require": {
+        "drupal/json_field": "^1.0@RC"
+    }
+}

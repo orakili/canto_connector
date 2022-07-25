@@ -111,7 +111,7 @@ class CantodamAsset extends MediaSourceBase {
    */
   public function getMetadataAttributes() {
     $fields = [
-      'file' => $this->t('File'),
+      'file' => $this->t('file'),
       'metadata' => $this->t('Metadata'),
       'uuid' => $this->t('ID'),
       'name' => $this->t('Name'),
@@ -196,6 +196,7 @@ class CantodamAsset extends MediaSourceBase {
     }
     $field = $this->getAssetFileField($media);
     $file = $media->get($field)->entity;
+    $id = $this->getSourceFieldValue($media);
     // If the source field is not required, it may be empty.
     if (!$file) {
       return parent::getMetadata($media, $name);
@@ -209,13 +210,11 @@ class CantodamAsset extends MediaSourceBase {
         return $is_file ? $file->id() : NULL;
 
       case 'thumbnail_uri':
-        $remoteThumbnail = $this?->metadata[$this->getSourceFieldValue($media)]['previewUri'];
-        $thumbFile = system_retrieve_file($remoteThumbnail, NULL, TRUE);
-        $isFile = !empty($thumbFile) && $file instanceof FileInterface;
-        return $isFile ? $thumbFile->getFileUri() : NULL;
+        return $file->getFileUri();
 
       default:
-        parent::getMetadata($media, $name);
+        $default = $this->metadata[$id]['detailData'][$name] ?? FALSE;
+        return $default ?: parent::getMetadata($media, $name);
 
     }
   }
