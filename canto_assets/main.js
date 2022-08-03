@@ -140,7 +140,20 @@ cantoAPI.getListByScheme = function (scheme, callback) {
     }
   });
 };
-
+cantoAPI.getImageDetail =  async (contentID, scheme) => {
+  var url = "https://" + _tenants + "/api/v1/" + scheme + "/" + contentID;
+  const settings = {
+    method: 'GET',
+    headers: _APIHeaders
+  };
+  try {
+    const fetchResponse = await fetch(url, settings);
+    const data = await fetchResponse.json();
+    return data;
+  } catch (e) {
+    console.log(e);
+  }
+}
 cantoAPI.getDetail = function (contentID, scheme, callback) {
   var url = "https://" + _tenants + "/api/v1/" + scheme + "/" + contentID;
   $.ajax({
@@ -153,8 +166,6 @@ cantoAPI.getDetail = function (contentID, scheme, callback) {
       alert("load detail error");
     },
     success: function (data) {
-      console.log('getting details');
-      console.log(data);
       callback(data);
     }
   });
@@ -353,7 +364,7 @@ function addEventListener() {
       // }
       handleSelectedMode();
     })
-    .on("click", "#insertAssetsBtn", function (e) {
+    .on("click", "#insertAssetsBtn", async function (e) {
       self.find(".loading-icon").removeClass("hidden");
       var assetArray = [];
       var selectedArray = self.find(".single-image .icon-s-Ok2_32").closest(".single-image");
@@ -364,7 +375,8 @@ function addEventListener() {
         obj.id = $(selectedArray[i]).data("id");
         obj.scheme = $(selectedArray[i]).data("scheme");
         obj.size = $(selectedArray[i]).data("size");
-        assetArray.push(obj);
+        obj.detailData =  await cantoAPI.getImageDetail(obj.id,obj.scheme);
+        assetArray.push(obj)
       }
       cantoAPI.insertImage(assetArray);
     })
@@ -388,7 +400,6 @@ function addEventListener() {
       //display detail
       var id = $(this).data("id");
       var scheme = $(this).data("scheme");
-      // cantoAPI.getDetail(id, scheme, imageDetail);
       cantoAPI.getDetail(id, scheme, imageNewDetail);
     })
     .on("click", "#logoutBtn", function (e) {
@@ -667,7 +678,6 @@ function imageNewDetail(detailData) {
     }
   };
   if (detailData) {
-    console.log(detailData);
     self.find("#imagebox_id").html(detailData.id);
     self.find("#imagebox_name").html(detailData.name);
     self.find("#imagebox_size").html(Math.round(detailData.size / 1024) + "KB");
