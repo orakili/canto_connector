@@ -10,7 +10,7 @@ canto_connector.image_dialog:
     _entity_access: 'filter_format.use'
 
 canto_connector.admin_settings_form:
-  path: '/admin/config/search/canto_connector'
+  path: '/admin/config/media/canto_connector'
   defaults:
     _form: '\Drupal\canto_connector\Form\CantoConnectorAdminSettingsForm'
     _title: 'Canto Connector Settings'
