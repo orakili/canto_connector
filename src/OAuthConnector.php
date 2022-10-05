@@ -22,10 +22,15 @@ class OAuthConnector {
       'User-Agent' => 'Universal Connector',
       'Authorization' => 'Bearer ' . $accessToken,
     ];
-    $response = $client->get($url, ['headers' => $headers]);
-
-    return $response->getStatusCode() == 200 ? $response->getBody()
-      ->getContents() : FALSE;
+    try {
+      $response = $client->get($url, ['headers' => $headers]);
+      return $response->getStatusCode() == 200 ? $response->getBody()
+        ->getContents() : FALSE;
+    } catch (\Exception $e) {
+      \Drupal::logger('canto_connector')->error("Couldn't retrieve user info",
+        ['@message' => $e->getMessage()]);
+      return FALSE;
+    }
   }
 
   /**
