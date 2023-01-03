@@ -2,7 +2,7 @@
 
 namespace Drupal\canto_connector\Controller;
 
-use Drupal\Core\Logger\LoggerChannelFactory;
+use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\Core\Session\AccountProxy;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\canto_connector\CantoConnectorRepository;
@@ -25,7 +25,7 @@ class CantoConnectorOAuthController extends ControllerBase {
   /**
    * The user data service.
    *
-   * @var \Drupal\Core\Logger\LoggerChannelFactory
+   * @var \Drupal\Core\Logger\LoggerChannelFactoryInterface
    */
   protected $loggerFactory;
 
@@ -39,7 +39,7 @@ class CantoConnectorOAuthController extends ControllerBase {
   /**
    * {@inheritdoc}
    */
-  public function __construct(CantoConnectorRepository $repository, LoggerChannelFactory $loggerFactory, AccountProxy $accountProxy) {
+  public function __construct(CantoConnectorRepository $repository, LoggerChannelFactoryInterface $loggerFactory, AccountProxy $accountProxy) {
     $this->repository = $repository;
     $this->loggerFactory = $loggerFactory;
     $this->accountProxy = $accountProxy;
