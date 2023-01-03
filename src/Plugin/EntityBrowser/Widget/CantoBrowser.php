@@ -374,6 +374,7 @@ class CantoBrowser extends WidgetBase {
    * {@inheritdoc}
    */
   protected function prepareEntities(array $form, FormStateInterface $formState) {
+    $entities = [];
     $assets = $formState->getValue('assets');
     // Get the remaining asset ids:
     $assetIds = array_keys($assets);
@@ -389,7 +390,7 @@ class CantoBrowser extends WidgetBase {
       // Query for existing entities.
       $existing_ids = $this->getExistingEntities($media_type, $source_field, $assetIds);
       // Load the entities found.
-      $entities[] = $this->entityTypeManager->getStorage('media')
+      $entities = $this->entityTypeManager->getStorage('media')
         ->loadMultiple($existing_ids);
       // Loop through the existing entities.
       foreach ($entities as $entity) {
