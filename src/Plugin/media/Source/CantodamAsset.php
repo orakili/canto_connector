@@ -116,6 +116,7 @@ class CantodamAsset extends MediaSourceBase {
       'uuid' => $this->t('ID'),
       'name' => $this->t('Name'),
       'description' => $this->t('Description'),
+      'copyright' => $this->t('Copyright'),
       'approval_status' => $this->t('Approval Status'),
       'tags' => $this->t('Tags'),
       'scheme' => $this->t('Type'),
