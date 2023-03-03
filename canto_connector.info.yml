@@ -1,7 +1,7 @@
 name: Canto Connector
 type: module
 configure: canto_connector.admin_settings_form
-core_version_requirement: ^8.8 || ^9
+core_version_requirement: ^9.5 || ^10
 description: This module used to connect canto flight to get resource.
 package: Images
 dependencies:
