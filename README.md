@@ -10,8 +10,8 @@ Download and install the Canto Connector module [See here for help with installi
 ### Step-by-step configuration guide
 
 This guide provides an example for how to implement the Canto Connector module on your Drupal 9 site.
-### Quick start configuration guide
 
+### Quick start configuration guide
 
 Manual:
 
@@ -37,6 +37,7 @@ Additional fields may be added to store the Canto DAM asset metadata. Here is a 
 Additional XMP metadata field mapping options, depending on the fields enabled in Canto DAM, will also be available (ex. city, state, customfield1 etc.)
 
 Return to the media bundle configuration page and set the field mappings for the fields that you created. When a Canto DAM asset is added to a piece of content, this module will create a media entity which provides a "local" copy of the asset to your site. When the media entity is created the Canto DAM values will be mapped to the entity fields that you have configured.
+
 // @todo : The mapped field values will be periodically synchronized with Canto DAM via cron.
 
 - REQUIRED: You must create a field for the Canto DAM asset ID and set the "Type provider configuration" to use this field as the "Field with source information".
@@ -50,15 +51,19 @@ If you want your site to reflect the Canto DAM asset status you should map the "
 - (2017-09-26) When an inactive asset is synchronized the entity status will show blank because of [this issue](https://www.drupal.org/node/2855630)
 
 #### Date created and date modified
+
 // @todo.
 
 ### Configure Canto DAM API credentials and Cron settings
+
 // @todo
 
 #### Crop configuration
+
 If you are using the [Crop](https://www.drupal.org/project/crop) module on your site, you should map the "Crop configuration -> Image field" to the field that you created to store the Canto DAM asset file.
 
 ### Configure an Entity Browser for Canto DAM
+
 In order to use the Canto DAM asset browser you will need to create a new entity browser or add a Canto DAM widget to an existing entity browser (/admin/config/content/entity_browser).
 
 - NOTE: For more information on entity browser configuration please see the [Entity Browser](https://www.drupal.org/project/entity_browser) module and the [documentation](https://github.com/drupal-media/d8-guide/blob/master/modules/entity_browser/inline_entity_form.md) page on github
@@ -66,12 +71,14 @@ In order to use the Canto DAM asset browser you will need to create a new entity
 - NOTE: When using the "Modal" Display plugin you may want to disable the "Auto open entity browser" setting.
 
 ### Add a media field
+
 In order to add a Canto DAM asset to a piece of content you will need to add a media field to one of your content types.
 
 - NOTE: For more information on media fields please see the [Media Entity](https://www.drupal.org/project/media_entity) module and the [Drupal 8 Media Guide](https://drupal-media.gitbooks.io/drupal8-guide/content/modules/media_entity/intro.html)
 - NOTE: The default display mode for media fields will only show a the media entity label. If you are using a media field for images you will likely want to change this under the display settings (Manage Display).
 
 ### WYSIWYG configuration
+
 The media entity module provides a default embed button which can be configured at /admin/config/content/embed. It can be configured to use a specific entity browser and allow for different display modes.
 
 - NOTE: When choosing an entity browser to use for the media embed button, be aware that the "Modal" Display plugin is not compatible with the WYSIWYG media embed button. You may want to use the "iFrame" display plugin or create a separate Entity Browser to use with the media embed button
