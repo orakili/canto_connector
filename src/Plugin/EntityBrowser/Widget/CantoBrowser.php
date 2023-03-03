@@ -19,6 +19,7 @@ use Drupal\Core\Utility\Token;
 use Drupal\entity_browser\WidgetBase;
 use Drupal\entity_browser\WidgetValidationManager;
 use Drupal\file\FileInterface;
+use Drupal\file\FileRepositoryInterface;
 use Drupal\Component\Serialization\Json;
 use Drupal\media\Entity\MediaType;
 use Drupal\media\MediaInterface;
@@ -39,6 +40,13 @@ use Symfony\Component\HttpFoundation\RequestStack;
  * )
  */
 class CantoBrowser extends WidgetBase {
+
+  /**
+   * The config factory.
+   *
+   * @var \Drupal\Core\Config\ConfigFactoryInterface
+   */
+  protected $configFactory;
 
   /**
    * The current user account.
@@ -98,6 +106,13 @@ class CantoBrowser extends WidgetBase {
   protected $token;
 
   /**
+   * The file repository.
+   *
+   * @var \Drupal\file\FileRepositoryInterface
+   */
+  protected $fileRepository;
+
+  /**
    * Canto browser constructor.
    *
    * {@inheritdoc}
@@ -111,24 +126,27 @@ class CantoBrowser extends WidgetBase {
     EntityFieldManagerInterface $entity_field_manager,
     WidgetValidationManager $validation_manager,
     AccountInterface $account,
-    MediaSourceManager $sourceManager,
-    RequestStack $requestStack,
+    MediaSourceManager $source_manager,
+    RequestStack $request_stack,
     CantoConnectorRepository $repository,
-    ConfigFactoryInterface $config,
-    ImageFactory $imageFactory,
-    LanguageManagerInterface $languageManager,
-    Token $token) {
+    ConfigFactoryInterface $config_factory,
+    ImageFactory $image_factory,
+    LanguageManagerInterface $language_manager,
+    Token $token,
+    FileRepositoryInterface $file_repository
+  ) {
 
     parent::__construct($configuration, $plugin_id, $plugin_definition, $event_dispatcher, $entity_type_manager, $validation_manager);
     $this->user = $account;
-    $this->sourceManager = $sourceManager;
+    $this->sourceManager = $source_manager;
     $this->entityFieldManager = $entity_field_manager;
-    $this->requestStack = $requestStack;
+    $this->requestStack = $request_stack;
     $this->repository = $repository;
-    $this->config = $config;
-    $this->imageFactory = $imageFactory;
-    $this->languageManager = $languageManager;
+    $this->configFactory = $config_factory;
+    $this->imageFactory = $image_factory;
+    $this->languageManager = $language_manager;
     $this->token = $token;
+    $this->fileRepository = $file_repository;
   }
 
   /**
@@ -149,7 +167,9 @@ class CantoBrowser extends WidgetBase {
       $container->get('config.factory'),
       $container->get('image.factory'),
       $container->get('language_manager'),
-      $container->get('token'));
+      $container->get('token'),
+      $container->get('file.repository'),
+    );
   }
 
   /**
@@ -210,7 +230,7 @@ class CantoBrowser extends WidgetBase {
       ],
     ];
 
-    $config = $this->config->get('canto_connector.settings');
+    $config = $this->configFactory->get('canto_connector.settings');
     $form['#attached']['library'][] = 'editor/drupal.editor.dialog';
     $form['#attached']['library'][] = 'canto_connector/canto_connector.entity_browser';
     $form['#attached']['library'][] = 'canto_connector/canto_connector.uc';
@@ -265,7 +285,7 @@ class CantoBrowser extends WidgetBase {
   public function checkAccessToken() {
     $user = $this->user;
     $userId = $user->id();
-    $envSettings = $this->config->get('canto_connector.settings')->get('env');
+    $envSettings = $this->configFactory->get('canto_connector.settings')->get('env');
     $env = ($envSettings === NULL) ? "canto.com" : $envSettings;
 
     $entry = [
@@ -413,7 +433,7 @@ class CantoBrowser extends WidgetBase {
       }
       $destination = $this->getFileDestination($media_type);
       // @todo if the file exists should we use the original or the new one?
-      $file = file_save_data($fileData, $destination . '/' . $info['displayName'], FileSystemInterface::EXISTS_REPLACE);
+      $file = $this->fileRepository->writeData($fileData, $destination . '/' . $info['displayName'], FileSystemInterface::EXISTS_REPLACE);
       $entity = $this->createMediaEntity($media_type, $file, $info);
       // Add the new entity to the array of returned entities.
       $entities[] = $entity;
@@ -475,6 +495,7 @@ class CantoBrowser extends WidgetBase {
       ->addTag('canto_existing_entities')
       ->condition('bundle', $mediaType->id())
       ->condition($sourceField, $assetIds, 'IN')
+      ->accessCheck(FALSE)
       ->execute();
   }
 
@@ -488,7 +509,7 @@ class CantoBrowser extends WidgetBase {
    *   The uri to use. Defaults to public://cantodam_assets
    */
   public function getFileDestination(MediaTypeInterface $mediaType) {
-    $scheme = $this->config->get('system.file')->get('default_scheme');
+    $scheme = $this->configFactory->get('system.file')->get('default_scheme');
     $file_directory = 'cantodam_assets';
 
     // Load the field definitions for this bundle.
