@@ -13,6 +13,7 @@ use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Image\ImageFactory;
 use Drupal\Core\Language\LanguageManagerInterface;
+use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Url;
 use Drupal\Core\Utility\Token;
@@ -113,6 +114,20 @@ class CantoBrowser extends WidgetBase {
   protected $fileRepository;
 
   /**
+   * The file system.
+   *
+   * @var \Drupal\Core\File\FileSystemInterface
+   */
+  protected $fileSystem;
+
+  /**
+   * The logger factory.
+   *
+   * @var \Drupal\Core\Logger\LoggerChannelFactoryInterface
+   */
+  protected $loggerFactory;
+
+  /**
    * Canto browser constructor.
    *
    * {@inheritdoc}
@@ -133,7 +148,9 @@ class CantoBrowser extends WidgetBase {
     ImageFactory $image_factory,
     LanguageManagerInterface $language_manager,
     Token $token,
-    FileRepositoryInterface $file_repository
+    FileRepositoryInterface $file_repository,
+    FileSystemInterface $file_system,
+    LoggerChannelFactoryInterface $logger_factory
   ) {
 
     parent::__construct($configuration, $plugin_id, $plugin_definition, $event_dispatcher, $entity_type_manager, $validation_manager);
@@ -147,6 +164,8 @@ class CantoBrowser extends WidgetBase {
     $this->languageManager = $language_manager;
     $this->token = $token;
     $this->fileRepository = $file_repository;
+    $this->fileSystem = $file_system;
+    $this->loggerFactory = $logger_factory;
   }
 
   /**
@@ -169,6 +188,8 @@ class CantoBrowser extends WidgetBase {
       $container->get('language_manager'),
       $container->get('token'),
       $container->get('file.repository'),
+      $container->get('file_system'),
+      $container->get('logger.factory')
     );
   }
 
@@ -432,11 +453,16 @@ class CantoBrowser extends WidgetBase {
         return $formState->setError($form['widget']['assets_container'], $this->t('An error occurred during file retrieval.'));
       }
       $destination = $this->getFileDestination($media_type);
-      // @todo if the file exists should we use the original or the new one?
-      $file = $this->fileRepository->writeData($fileData, $destination . '/' . $info['displayName'], FileSystemInterface::EXISTS_REPLACE);
-      $entity = $this->createMediaEntity($media_type, $file, $info);
-      // Add the new entity to the array of returned entities.
-      $entities[] = $entity;
+      if ($this->fileSystem->prepareDirectory($destination, FileSystemInterface::CREATE_DIRECTORY)) {
+        // @todo if the file exists should we use the original or the new one?
+        $file = $this->fileRepository->writeData($fileData, $destination . '/' . $info['displayName'], FileSystemInterface::EXISTS_REPLACE);
+        $entity = $this->createMediaEntity($media_type, $file, $info);
+        // Add the new entity to the array of returned entities.
+        $entities[] = $entity;
+      }
+      else {
+        $this->loggerFactory->get('canto_connector')->error('Unable to created directory: ' . $destination);
+      }
     }
     return $entities;
   }
